@@ -16,75 +16,11 @@ GCE_NAME           = /
 # COMMANDS                                                                      #
 #################################################################################
 
-## enter docker
-enter_docker:
-	docker exec -it $(PROJECT_NAME) bash;
-
-## run gpu
-run_gpu: build_gpu
-	docker run -it --name  $(PROJECT_NAME) \
-	--runtime nvidia \
-	-p 8888:8888 \
-	-p 6006:6006 \
-	-v `pwd`/:/app \
-	$(PROJECT_NAME);
-
-## run no gpu
-run_no_gpu: build_no_gpu
-	docker run -it --name  $(PROJECT_NAME) \
-	-p 8888:8888 \
-	-p 6006:6006 \
-	-v `pwd`/:/app \
-	$(PROJECT_NAME);
 
 
-## (ARG=FOLDER) Upload Data to gs
-sync_data_to_gs:
-	gsutil -m rsync -d -r $(FOLDER) gs://$(BUCKET)/$(FOLDER)
 
 
-## (ARG=FOLDER) Rsync src, scripts from vm
-rsync_FOLDER_from_vm:
-	rsync -ave ssh $(GCE_NAME):~/$(PROJECT_NAME)/$(FOLDER)/ ./$(FOLDER)/
 
-
-## init directory after clone
-init:
-	mkdir data || echo dir already created
-	mkdir logs || echo dir already created
-	touch logs/app.log || echo file already created
-	cd data && mkdir raw || echo dir already created;
-	cd data && mkdir interim || echo dir already created;
-	cd data && mkdir processed || echo dir already created;
-	gsutil -m rsync  -d -r  gs://$(BUCKET)/data/raw/ data/raw/;
-	cd
-	make raw_data_tree
-## run all tests
-test:
-	pytest
-
-## run the data preprocessing
-preprocess:
-	#remove data
-	rm -rf data/interim
-	rm -rf data/processed
-	cd data && mkdir interim || echo dir already created;
-	cd data && mkdir processed || echo dir already created;
-	python src/preprocess.py
-
-## train the cable classifier
-train:
-	cd
-	python src/train.py
-
-
-## run the model evaluation 
-evaluate:
-	cd
-	python src/evaluation.py
-
-## build complete workflow
-build: clean preprocess train evaluate
 
 ## Setup SSH tunnels
 setup_tunnels:
@@ -95,28 +31,12 @@ setup_tunnels:
 		sleep 1; \
 	done
 
-## dump a tree structure of all raw data
-raw_data_tree:
-	tree -d ./data/raw > raw_data_tree.txt
 
 ## setup ssh keys
 setup_ssh_keys:
 	gcloud compute config-ssh;
 	nano ~/.ssh/config
 
-# run rsync to synchronize local project to gcloud
-rsync_src_to_vm:
-	rsync -ave ssh ./src  ./docker .dockerignore ./Makefile ./setup.py $(GCE_NAME):~/$(PROJECT_NAME)/;
-
-# sync raw data from bucket to project 
-sync_data_from_gs:
-	gsutil -m rsync  -d -r  gs://$(BUCKET)/data/raw/ data/raw/;
-
-## clean temporary files
-clean:
-	find . -type f -name "*.py[co]" -delete
-	find . -type d -name "__pycache__" -delete
-	find . -name '.DS_Store' -type f -delete
 
 ## activate pipenv shell
 enter_pipenv:
@@ -125,14 +45,6 @@ enter_pipenv:
 ## de-activate pipenv shell
 exit_pipenv:
 	exit
-
-# build docker image without GPU
-build_no_gpu:
-	docker stop $(PROJECT_NAME);docker rm  $(PROJECT_NAME);docker build -f docker/no_gpu/Dockerfile -t $(PROJECT_NAME) .
-
-# build docker image with GPU
-build_gpu:
-	docker stop $(PROJECT_NAME);docker rm  $(PROJECT_NAME);docker build -f docker/gpu/Dockerfile -t $(PROJECT_NAME) .
 
 
 
