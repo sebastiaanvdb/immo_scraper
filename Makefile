@@ -10,7 +10,7 @@ BUCKET             = immo_scraper
 PROFILE            = default
 PROJECT_NAME       = immo_scraper
 PYTHON_INTERPRETER = python3
-GCE_NAME           = /
+PI_NAME            = pi@192.168.0.240
 
 #################################################################################
 # COMMANDS                                                                      #
@@ -24,10 +24,8 @@ GCE_NAME           = /
 
 ## Setup SSH tunnels
 setup_tunnels:
-	ssh -Nf -L 8888:localhost:8888 $(GCE_NAME)
-	ssh -Nf -L 6006:localhost:6006 $(GCE_NAME)
 	while True; do \
-		rsync -ave ssh README.md  .dockerignore  ./Pipfile ./Pipfile.lock  ./src  ./docker  ./configs ./Makefile ./setup.py $(GCE_NAME):~/$(PROJECT_NAME)/; \
+		rsync -ave ssh README.md  .dockerignore  ./Pipfile ./Pipfile.lock  ./src  ./docker  ./configs ./Makefile ./setup.py $(PI_NAME):~/$(PROJECT_NAME)/; \
 		sleep 1; \
 	done
 
